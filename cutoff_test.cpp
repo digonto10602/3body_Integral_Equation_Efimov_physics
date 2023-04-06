@@ -132,8 +132,111 @@ comp F_ieps_00_smooth(  comp s,
                         double kz, 
                         double s0,
                         double m,
+                        double epsilon,
                         double L,
+                        double kpoints,
                         double n_max    )
 {
-    
+    comp ii = {0.0,1.0};
+    comp res_I = {0.0,0.0};
+    double pi = acos(-1.0);
+
+    double kmin = 0.0;
+    comp kmax = pmom(s,0.0,m);
+    double real_kmax = real(kmax);
+    //double kpoints = 500.0;
+    double delk = abs(real_kmax - kmin)/kpoints;
+    for(int nx=0;nx<n_max;++nx)
+    {
+        for(int ny=0;ny<n_max;++ny)
+        {
+            for(int nz=0;nz<n_max;++nz)
+            {
+                double n = sqrt(nx*nx + ny*ny + nz*nz);
+                if(n<=0) continue;
+                if(n>=n_max) continue;
+                
+                for(double ax=kmin;ax<=real_kmax;ax=ax+delk)
+                {
+                    for(double ay=kmin;ay<=real_kmax;ay=ay+delk)
+                    {
+                        for(double az=kmin;az<=real_kmax;az=az+delk)
+                        {
+                            double amom = sqrt(ax*ax + ay*ay + az*az);
+
+                            double phasespace = delk*delk*delk/pow(2.0*pi,3.0);
+
+                            double amom_n = ax*nx + ay*ny + az*nz;
+                            comp expon = exp(ii*amom_n*L);
+
+                            double k = sqrt(kx*kx + ky*ky + kz*kz);
+                            comp sigk = sigma_p(s,k,m);
+                            comp siga = sigma_p(s,amom,m);
+
+                            double k_plus_a = sqrt(     kx*kx + ky*ky + kz*kz 
+                                                    +   ax*ax + ay*ay + az*az   
+                                                    +  2.0*kx*ax + 2.0*ky*ay + 2.0*kz*az    );
+                            comp sigka = sigma_p(s,k_plus_a,m);
+
+                            comp cutoffs = s0_based_Hfunc_comp_smooth(sigk,s0,m)
+                                            *s0_based_Hfunc_comp_smooth(siga,s0,m)
+                                            *s0_based_Hfunc_comp_smooth(sigka,s0,m);
+
+                            comp omegak = omega_comp(k,m);
+                            comp omegaa = omega_comp(amom, m);
+                            comp omegaka = omega_comp(k_plus_a, m);
+
+                            comp denom = 2.0*omegaa*2.0*omegaka*(sqrt(s) - omegak - omegaa - omegaka + ii*epsilon);
+                            
+                            /*
+                            cout<<"nx = "<<nx<<'\t'<<"ny = "<<ny<<'\t'<<"nz = "<<nz<<endl;
+                            cout<<"n = "<<n<<endl;
+                            
+                            cout<<"ax = "<<ax<<'\t'<<"ay = "<<ay<<'\t'<<"az = "<<az<<endl;
+                            cout<<"a = "<<amom<<endl;
+
+                            cout<<"exponent = "<<expon<<'\t'<<" cutoffs = "<<cutoffs<<endl;
+                            */
+                            comp tot = phasespace * expon * cutoffs / denom; 
+                            
+                            //cout<<"result = "<<tot<<endl;
+
+                            //cout<<"====================================="<<endl;
+
+                            res_I = res_I + tot;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return res_I*0.5;
+}
+
+int main()
+{
+
+    // Inputs
+    double pi = acos(-1.0);
+    double a = 2.0;
+    double s = 6.5;
+    double kx = 0.2;
+    double ky = 0.2;
+    double kz = 0.2;
+
+    double s0 = 1.0;
+    double m = 1.0;
+    double epsilon = 0.001;
+    double L = 4.0;
+    double kpoints = 100.0;
+    double n_max = 10.0;
+
+    for(int L=2;L<20;++L)
+    {
+        comp F = F_ieps_00_smooth(  s, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max);
+
+        cout<<L<<'\t'<<F<<endl;
+    }
+    return 0;
 }
