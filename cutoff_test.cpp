@@ -214,29 +214,323 @@ comp F_ieps_00_smooth(  comp s,
     return res_I*0.5;
 }
 
-int main()
+
+comp F_ieps_00_hard(    comp s,
+                        double kx,
+                        double ky,
+                        double kz, 
+                        double s0,
+                        double m,
+                        double epsilon,
+                        double L,
+                        double kpoints,
+                        double n_max    )
+{
+    comp ii = {0.0,1.0};
+    comp res_I = {0.0,0.0};
+    double pi = acos(-1.0);
+
+    double kmin = 0.0;
+    comp kmax = pmom(s,0.0,m);
+    double real_kmax = real(kmax);
+    //double kpoints = 500.0;
+    double delk = abs(real_kmax - kmin)/kpoints;
+    for(int nx=0;nx<n_max;++nx)
+    {
+        for(int ny=0;ny<n_max;++ny)
+        {
+            for(int nz=0;nz<n_max;++nz)
+            {
+                double n = sqrt(nx*nx + ny*ny + nz*nz);
+                if(n<=0) continue;
+                if(n>=n_max) continue;
+                
+                for(double ax=kmin;ax<=real_kmax;ax=ax+delk)
+                {
+                    for(double ay=kmin;ay<=real_kmax;ay=ay+delk)
+                    {
+                        for(double az=kmin;az<=real_kmax;az=az+delk)
+                        {
+                            double amom = sqrt(ax*ax + ay*ay + az*az);
+
+                            double phasespace = delk*delk*delk/pow(2.0*pi,3.0);
+
+                            double amom_n = ax*nx + ay*ny + az*nz;
+                            comp expon = exp(ii*amom_n*L);
+
+                            double k = sqrt(kx*kx + ky*ky + kz*kz);
+                            comp sigk = sigma_p(s,k,m);
+                            comp siga = sigma_p(s,amom,m);
+
+                            double k_plus_a = sqrt(     kx*kx + ky*ky + kz*kz 
+                                                    +   ax*ax + ay*ay + az*az   
+                                                    +  2.0*kx*ax + 2.0*ky*ay + 2.0*kz*az    );
+                            comp sigka = sigma_p(s,k_plus_a,m);
+
+                            comp cutoffs = s0_based_Hfunc_comp_hard(sigk,s0,m)
+                                            *s0_based_Hfunc_comp_hard(siga,s0,m)
+                                            *s0_based_Hfunc_comp_hard(sigka,s0,m);
+
+                            comp omegak = omega_comp(k,m);
+                            comp omegaa = omega_comp(amom, m);
+                            comp omegaka = omega_comp(k_plus_a, m);
+
+                            comp denom = 2.0*omegaa*2.0*omegaka*(sqrt(s) - omegak - omegaa - omegaka + ii*epsilon);
+                            
+                            /*
+                            cout<<"nx = "<<nx<<'\t'<<"ny = "<<ny<<'\t'<<"nz = "<<nz<<endl;
+                            cout<<"n = "<<n<<endl;
+                            
+                            cout<<"ax = "<<ax<<'\t'<<"ay = "<<ay<<'\t'<<"az = "<<az<<endl;
+                            cout<<"a = "<<amom<<endl;
+
+                            cout<<"exponent = "<<expon<<'\t'<<" cutoffs = "<<cutoffs<<endl;
+                            */
+                            comp tot = phasespace * expon * cutoffs / denom; 
+                            
+                            //cout<<"result = "<<tot<<endl;
+
+                            //cout<<"====================================="<<endl;
+
+                            res_I = res_I + tot;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return res_I*0.5;
+}
+
+comp rho_bar(   comp s2k, 
+                double m    )
+{
+    comp ii = {0.0,1.0};
+    double pi = acos(-1.0);
+    if(real(s2k)>4.0*m*m)
+    {
+        comp num = -ii*sqrt(s2k/4.0 - m*m);
+        comp denom = 16.0*pi*sqrt(s2k);
+
+        return num/denom;
+    }
+    else 
+    {
+        comp num = abs(sqrt(s2k/4.0 - m*m));
+        comp denom = 16.0*pi*sqrt(s2k);
+
+        return num/denom; 
+    }
+}
+
+comp rho00_smooth(  comp s,
+                    double kx, 
+                    double ky, 
+                    double kz,
+                    double s0, 
+                    double m    )
+{
+    comp k = sqrt(kx*kx + ky*ky + kz*kz);
+
+    comp s2k = sigma_p(s,k,m);
+
+    comp Hk = s0_based_Hfunc_comp_smooth(s2k, s0, m);
+
+    return Hk*rho_bar(s2k,m);
+}
+
+comp rho00_hard(    comp s,
+                    double kx, 
+                    double ky, 
+                    double kz,
+                    double s0, 
+                    double m    )
+{
+    comp k = sqrt(kx*kx + ky*ky + kz*kz);
+
+    comp s2k = sigma_p(s,k,m);
+
+    comp Hk = s0_based_Hfunc_comp_hard(s2k, s0, m);
+
+    return Hk*rho_bar(s2k,m);
+}
+
+comp F00_smooth(    comp s,
+                    double kx,
+                    double ky,
+                    double kz, 
+                    double s0,
+                    double m,
+                    double epsilon,
+                    double L,
+                    double kpoints,
+                    double n_max  )
+{
+    return F_ieps_00_smooth(s, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max) + rho00_smooth(s, kx, ky, kz, s0, m);
+}
+
+comp F00_hard(      comp s,
+                    double kx,
+                    double ky,
+                    double kz, 
+                    double s0,
+                    double m,
+                    double epsilon,
+                    double L,
+                    double kpoints,
+                    double n_max  )
+{
+    return F_ieps_00_hard(s, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max) + rho00_hard(s, kx, ky, kz, s0, m);
+}
+
+comp F3_smooth( comp s,
+                double scattering_length, 
+                double kx,
+                double ky,
+                double kz, 
+                double s0,
+                double m,
+                double epsilon,
+                double L,
+                double kpoints,
+                double n_max    )
+{
+    comp F = F00_smooth(s, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max);
+    comp k = sqrt(kx*kx + ky*ky + kz*kz);
+    comp omegak = omega_comp(k, m);
+
+    comp G = G_00_smooth(s, kx, ky, kz, kx, ky, kz, s0, m);
+
+    comp K2 = K2_scattlength(s, scattering_length);
+
+    comp firstterm = F/(2.0*omegak*L);
+    double secondterm = -2.0/3.0;
+    comp thirdterm_inv = 1.0/(1.0 + K2*G);
+
+    comp forthterm = 1.0/(1.0 + thirdterm_inv*K2*F);
+
+    return firstterm*(secondterm + forthterm);
+
+}
+
+comp F3_hard(   comp s,
+                double scattering_length, 
+                double kx,
+                double ky,
+                double kz, 
+                double s0,
+                double m,
+                double epsilon,
+                double L,
+                double kpoints,
+                double n_max    )
+{
+    comp F = F00_hard(s, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max);
+    comp k = sqrt(kx*kx + ky*ky + kz*kz);
+    comp omegak = omega_comp(k, m);
+
+    comp G = G_00_hard(s, kx, ky, kz, kx, ky, kz, s0, m);
+
+    comp K2 = K2_scattlength(s, scattering_length);
+
+    comp firstterm = F/(2.0*omegak*L);
+    double secondterm = -2.0/3.0;
+    comp thirdterm_inv = 1.0/(1.0 + K2*G);
+
+    comp forthterm = 1.0/(1.0 + thirdterm_inv*K2*F);
+
+    return firstterm*(secondterm + forthterm);
+
+}
+
+
+//int main()
+void cutoff_test()
 {
 
     // Inputs
     double pi = acos(-1.0);
     double a = 2.0;
-    double s = 6.5;
-    double kx = 0.2;
-    double ky = 0.2;
-    double kz = 0.2;
-
-    double s0 = 1.0;
+    double s = 8.5;
+    double kx = 0.0;
+    double ky = 0.0;
+    double kz = 0.0;
+    comp k = sqrt(kx*kx + ky*ky + kz*kz);
+    //double s0 = 1.0;
     double m = 1.0;
     double epsilon = 0.001;
-    double L = 4.0;
+    //double L = 4.0;
     double kpoints = 100.0;
     double n_max = 10.0;
 
-    for(int L=2;L<20;++L)
-    {
-        comp F = F_ieps_00_smooth(  s, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max);
+    comp sigb = sigmab(a,m);
+    comp q = pmom(s,sigb,m);
+    cout<<"pole at q = "<<q<<endl;
 
-        cout<<L<<'\t'<<F<<endl;
+    ofstream fout;
+    int s0count = 0;
+    for(double s0=0.90;s0>0.25;s0=s0-0.25)
+    {
+        string filename = "F3_check_s0_" + to_string(s0count) + ".dat";
+        fout.open(filename.c_str());
+        for(int L=2;L<20;++L)
+        {
+            //comp F = F_ieps_00_smooth(  s, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max);
+
+
+            comp F3smooth = F3_smooth(s, a, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max);
+            comp F3hard   = F3_hard  (s, a, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max);
+        
+            comp delF3 = F3smooth - F3hard;
+            cout<<"s0="<<s0<<'\t'<<"L="<<L<<'\t'<<"F3smooth="<<F3smooth<<'\t'<<"F3hard="<<F3hard<<'\t'<<"delF3="<<delF3<<endl;
+            fout<<a<<'\t'<<s0<<'\t'<<real(k)<<'\t'<<imag(k)<<'\t'<<L<<'\t'
+                <<real(F3smooth)<<'\t'<<imag(F3smooth)<<'\t'
+                <<real(F3hard)<<'\t'<<imag(F3hard)<<'\t'
+                <<real(delF3)<<'\t'<<imag(delF3)<<endl;
+        }
+        fout.close();
+        s0count = s0count + 1;
     }
+    //return 0;
+}
+
+void testing_hardcutoff()
+{
+    // Inputs
+    double pi = acos(-1.0);
+    double a = 2.0;
+    double s = 8.5;
+    double kx = 0.0;
+    double ky = 0.0;
+    double kz = 0.0;
+    comp k = sqrt(kx*kx + ky*ky + kz*kz);
+
+    
+    //double s0 = 1.0;
+    double m = 1.0;
+    comp sigk = sigma_p(s,k,m);
+
+
+    double epsilon = 0.001;
+    //double L = 4.0;
+    double kpoints = 100.0;
+    double n_max = 10.0;
+
+    comp sigb = sigmab(a,m);
+    comp q = pmom(s,sigb,m);
+    cout<<"pole at q = "<<q<<endl;
+
+    comp cutoff = s0_based_Hfunc_comp_hard(sigk, 0.9, m);
+
+    cout<<"cutoff = "<<cutoff<<endl;
+
+    //return 0;
+}
+
+int main()
+{
+    cutoff_test();
+
     return 0;
 }
