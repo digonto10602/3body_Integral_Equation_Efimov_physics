@@ -1668,7 +1668,7 @@ void Mphib_secondsheet_belowthreshold_vs_s3_N_3d_with_weights()
 {
     time_t time_start, time_end;
     comp ii = {0.0,1.0};
-    double a = 16;
+    double a = -6.4;
     double m = 1.0;
 
     cout<<"am = "<<a<<endl;
@@ -1712,7 +1712,7 @@ void Mphib_secondsheet_belowthreshold_vs_s3_N_3d_with_weights()
         double gvalright = real(Grightbranchpoint(a,m));
     
         double sinitial = 8.85;//6.5;//8.3;//5.0;//8.974;//8.6;//8.975;//8.96815;//7.5;//8.7;//7.5;//8.75;//1.001;//gvalright - 0.5;//(gvalleft + (gvalleft+gvalright)/2.0)/2.0;//8.965;//8.70115128532;//8.72;//real(phibthreshold(a,m));//
-        double sfinal = 9.0;//real(phibthreshold(a,m));//8.82;
+        double sfinal = 9.05;//real(phibthreshold(a,m));//8.82;
         double dels = abs(sinitial-sfinal)/delspoints;//abs(8.70275246887-8.70115128532);//
         points1 = N;
         //string filename="Mphib_secondsheet_acount_" + to_string(acount) + ".dat";
@@ -1751,7 +1751,7 @@ void Mphib_secondsheet_belowthreshold_vs_s3_N_3d_with_weights()
             //cout<<"gLeft = "<<setprecision(16)<<gvalleft<<'\t'<<"gRight = "<<gvalright<<endl;
             comp sigmamin = {0.0,0.0};
             comp sigmamax = sigmax(s,m);
-            comp sigb = sigmab(a,m);
+            comp sigb = 2.0*m*m;//sigmab(a,m);
             comp qval = pmom(s,sigb,m);
             cout<<"q = "<<qval<<endl;
 
@@ -1829,10 +1829,12 @@ void Mphib_secondsheet_belowthreshold_vs_s3_N_3d_with_weights()
                 else
                 mom_vector_maker_seba_imspos_2(qvec,weights,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,tag1,tag2,switch_for_gvec_fixer);
                 */
+                /*
                 if(tag1!=0)
                     switch_for_gvec_fixer = 0;
                 else 
                     switch_for_gvec_fixer = 1;
+                */
                 //mom_vector_maker_seba_imspos_1(qvec,weights,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,tag1,tag2,switch_for_gvec_fixer);
                 
                 /*for(int i=0;i<tmp_qvec.size()-5;++i)
@@ -1950,6 +1952,286 @@ void Mphib_secondsheet_belowthreshold_vs_s3_N_3d_with_weights()
             comp gsq = gfunc*gfunc;
             comp ds = result;
             result = gsq*result;
+
+            //result = Bmat.determinant();
+
+        
+            comp rhopb = rhophib(s,a,m);
+            comp mphib2 = result/(1.0 + 2.0*ii*rhopb*result);
+            comp mphib2denom = (1.0 + 2.0*ii*rhopb*result);
+            comp GSval = GS_pk(s,qval,qval,m,eps);
+            //result = rhophib(s,a,m)*result;
+
+            cout<<"s:"<<s<<'\t'<<"res:"<<result<<'\t'<<"run:"<<count + 1<<endl;
+            fout<<setprecision(16)<<real(s)<<'\t'
+                <<imag(s)<<'\t'
+                <<real(result)<<'\t'
+                <<imag(result)<<'\t'
+                <<real(ds)<<'\t'
+                <<imag(ds)<<'\t'
+                <<real(mphib2)<<'\t'
+                <<imag(mphib2)<<'\t'
+                <<real(mphib2denom)<<'\t'
+                <<imag(mphib2denom)<<'\t'
+                <<a<<'\t'
+                <<N<<'\t'
+                <<gvalleft<<'\t'
+                <<gvalright<<'\t'
+                <<real(phibthreshold(a,m))<<'\t'
+                <<eps<<endl;
+            count = count + 1;
+            
+            cout<<"-------------------------"<<endl;
+        }
+        acount = acount + 1;
+        
+        }
+        fout.close();
+
+    }
+
+    //}
+
+}
+
+void ds_belowthreshold_vs_s3_N_3d_with_weights()
+{
+    time_t time_start, time_end;
+    comp ii = {0.0,1.0};
+    double a = -6.40;
+    double m = 1.0;
+
+    cout<<"am = "<<a<<endl;
+    //double s = 8.65;
+
+    //double s3imag = 0.0;//1.0e-5;
+    
+
+    double delspoints = 100.0;
+    double points1 = 250.0;
+    double N = points1;
+    //double points2 = 500.0;
+    double eps = 0.0;
+    double eps_for_m2k = 0.0;
+    double qvec_r = 0.0101;
+    //double box = 10.0;
+    int acount = 0;
+
+    double dela = 0.051;
+    //for(double a=2.401;a<=16.03;a=a+dela)
+    vector<double> epsvec(5);
+    epsvec[0] = 0.000010;
+    epsvec[1] = 0.000007;
+    epsvec[2] = 0.000005;
+    epsvec[3] = 0.000003;
+    epsvec[4] = 0.000001;
+
+    //for(int epsi=0;epsi<epsvec.size();++epsi)
+    //{
+
+    //    eps = epsvec[epsi];
+
+    //int N = 500;
+    //for(int N=900;N<=1000;N=N+20)
+    {
+        //if(a>=3.7) dela = 0.101;
+        //else if(a>=17.0) dela = 0.51;
+        //else if(a>=1000.0) dela = 300.01;
+
+        double gvalleft = real(Gleftbranchpoint(a,m));
+        double gvalright = real(Grightbranchpoint(a,m));
+    
+        double sinitial = 8.99;//6.5;//8.3;//5.0;//8.974;//8.6;//8.975;//8.96815;//7.5;//8.7;//7.5;//8.75;//1.001;//gvalright - 0.5;//(gvalleft + (gvalleft+gvalright)/2.0)/2.0;//8.965;//8.70115128532;//8.72;//real(phibthreshold(a,m));//
+        double sfinal = 9.06;//real(phibthreshold(a,m));//8.82;
+        double dels = abs(sinitial-sfinal)/delspoints;//abs(8.70275246887-8.70115128532);//
+        points1 = N;
+        //string filename="Mphib_secondsheet_acount_" + to_string(acount) + ".dat";
+        string filename="Mphib_a_" + to_string((int)a) + "_N_" + to_string((int)N) + "_3d.dat";
+        
+        //string filename="testGL_Mphib_a_" + to_string((int)a) + "_N_" + to_string((int)N) + "_2.dat";
+        //string filename="tmp.dat";
+        
+        double simaginitial = -0.0005;
+        double simagfinal = 0.0000001;
+        double delsimagpoints = 100;
+        double delsimag = abs(simaginitial - simagfinal)/delsimagpoints;
+
+        ofstream fout;
+        fout.open(filename.c_str());
+
+        int count = 0;
+
+        //double eta = 20.0;
+        //test = 8.90465,0.01713
+
+        for(int j=0;j<delsimagpoints+1;++j)
+        {
+            double s3imag = simaginitial + j*delsimag;
+       
+        for(int i=0;i<delspoints+1;++i)
+        //for(double s3=sinitial;s3<=sfinal;s3=s3+dels)
+        { 
+            double s3real = sinitial + i*dels;
+            //double s = 8.78;
+            //if(s>=sfinal) dels = 0.05/100.0;
+            //eps = eps_above_threshold(eta,s,a,m,points);
+
+            comp s =  s3real + ii*s3imag;
+            cout<<"am = "<<a<<endl;
+            //cout<<"gLeft = "<<setprecision(16)<<gvalleft<<'\t'<<"gRight = "<<gvalright<<endl;
+            comp sigmamin = {0.0,0.0};
+            comp sigmamax = sigmax(s,m);
+            comp sigb = 2.0*m*m;//sigmab(a,m);
+            comp qval = pmom(s,sigb,m);
+            cout<<"q = "<<qval<<endl;
+
+            comp kmin = 0.0;
+            comp kmax = pmom(s,0.0,m);
+        
+
+            //cout<<"s:"<<s<<endl;
+            cout<<"run: "<<count+1<<endl;
+            cout<<"a = "<<a<<'\t'<<" dela = "<<dela<<endl;
+            cout<<"sigmin:"<<sigmamin<<'\t'<<"sigmax:"<<sigmamax<<'\t'<<"sigb:"<<sigb<<endl;
+            cout<<"eps:"<<eps<<endl;
+
+            vector<comp> qvec;
+            vector<comp> weights;
+
+            int tag1=0,tag2=0;
+            
+            int switch_for_gvec_fixer = 0; //0 means we have used contour and turn on gvec fixer
+                                           //1 means we have used straight line and turn off gvec fixer
+            
+            if(s3imag<=0.0)
+            {
+                //mom_vector_maker_41(qvec,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,qvec_r);
+                cout<<"contour_43 chosen"<<endl;
+                //mom_vector_maker_43(qvec,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,qvec_r);
+                //mom_vector_maker_43_with_weights(qvec,weights,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,qvec_r);
+                
+                //this one was using last
+                //mom_vector_maker_43_with_weights_with_seba_imsneg(qvec,weights,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,qvec_r);
+                
+                //mom_vector_maker_seba_imsneg(qvec,weights,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1);
+                comp m2kbc = M2kbranchcut_right_momrep_plus_eps(s,m,eps_for_m2k);
+                double shift = real(m2kbc)/10;
+                //line_maker_with_weights(qvec,weights,kmin,kmax,points1);
+                //contour_for_resonance(qvec,weights,kmin,kmax,shift,points1);
+                //contour_for_resonance_1(qvec,weights,m2kbc,kmin,kmax,shift,points1);
+                cout<<"m2k bc ="<<m2kbc<<endl;
+                double reshift = 0.2;
+                double imshift = +0.3;
+                contour_for_resonance_2(qvec,weights,kmin,reshift,imshift,kmax,points1);
+                
+                switch_for_gvec_fixer = 1;
+            }
+            else if(s3imag>0.0)
+            {
+                //mom_vector_maker_41(qvec,real(s) - ii*imag(s),0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,qvec_r);
+                //mom_vector_maker_43(qvec,real(s) - ii*imag(s),0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,qvec_r);
+                //mom_vector_maker_44(qvec,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,qvec_r);
+                cout<<"contour_47 chosen"<<endl;
+                //mom_vector_maker_47(qvec,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,qvec_r,tag1,tag2);
+                int changed_points = points1 + 5;
+                vector<comp> tmp_qvec;
+                vector<comp> tmp_weights;
+                //mom_vector_maker_seba_imspos(tmp_qvec,tmp_weights,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)changed_points,tag1,tag2,switch_for_gvec_fixer);
+                //mom_vector_maker_seba_imspos(qvec,weights,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,tag1,tag2,switch_for_gvec_fixer);
+                
+                //mom_vector_maker_47_with_weights(qvec,weights,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,qvec_r,tag1,tag2);
+                
+                //mom_vector_maker_seba_imspos_1(qvec,weights,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,tag1,tag2,switch_for_gvec_fixer);
+                //mom_vector_maker_seba_imspos_2(qvec,weights,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,tag1,tag2,switch_for_gvec_fixer);
+                
+
+                //mom_vector_maker_43_with_weights_with_seba_imsneg(qvec,weights,real(s)-ii*imag(s),0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,qvec_r);
+                //mom_vector_maker_seba_imspos_2_with_contour47(qvec,weights,s,0.0,kmax,a,m,eps,eps_for_m2k,(double)points1,tag1,tag2,switch_for_gvec_fixer);
+                /*for(int ll=0;ll<qvec.size();++ll)
+                {
+                    comp tempq = qvec[ll];
+                    qvec[ll] = real(tempq) - ii*imag(tempq); 
+                    comp tempweights = weights[ll];
+                    weights[ll] = real(weights[ll]) - ii*imag(weights[ll]);
+                }*/
+
+                //mom_vector_maker_seba_imspos_5(qvec,weights,s,0.0,kmax,a,m,eps,eps,(double)points1,tag1,tag2,switch_for_gvec_fixer);
+                
+                comp m2kbc = M2kbranchcut_right_momrep_plus_eps(s,m,eps_for_m2k);
+                cout<<"m2k bc ="<<m2kbc<<endl;
+                double shift = real(m2kbc)/10;
+                //line_maker_with_weights(qvec,weights,kmin,kmax,points1);
+                //contour_for_resonance(qvec,weights,kmin,kmax,shift,points1);
+                //contour_for_resonance_1(qvec,weights,m2kbc,kmin,kmax,shift,points1);
+
+                double reshift = 0.2;
+                double imshift = +0.3;
+                contour_for_resonance_2(qvec,weights,kmin,reshift,imshift,kmax,points1);
+                //line_maker_with_weights(qvec,weights,kmin,kmax,points1);
+                
+
+                switch_for_gvec_fixer = 1;
+                tag1 = 0;
+                tag2 = 0;
+
+                
+                cout<<"tag1 = "<<tag1<<endl;
+                cout<<"tag2 = "<<tag2<<endl;
+                
+                
+            }
+
+            cout<<"qvec created with size = "<<qvec.size()<<endl;
+            int size = qvec.size();
+            Eigen::MatrixXcd Bmat(size,size);
+            Eigen::VectorXcd Gvec(size);
+            Eigen::VectorXcd dsol(size);
+
+            Gvec_maker_momrep(Gvec,s,qvec,qval,m,eps);
+          
+
+            cout<<"tag fixer = "<<tag1<<'\t'<<tag2<<endl;
+            //Gvec_maker_momrep_withtags(Gvec,s,qvec,qval,m,eps,tag1,tag2);
+            Eigen::VectorXcd interpolater_Gvec = Gvec;
+            Gvec = -1.0*Gvec;
+
+            Bmat_maker_momrep_2eps_with_weights(Bmat,s,qvec,qvec,weights,a,m,eps,eps_for_m2k);
+
+            
+            //std::cout<<"Bmat made from i = "<<i<<'\t'<<" j = "<<j<<endl;
+            double relerror;
+            
+        
+            //cout<<"did this = "<<count<<" times"<<endl;
+            //cout<<"i val = "<<i<<'\t';
+            //cout<<"j val = "<<j<<endl;
+            
+            //LinearSolver_2(Bmat,dsol,Gvec,relerror);
+
+            time(&time_start);
+            LinearSolver_2(Bmat,dsol,Gvec,relerror);
+
+            //cusolverComplex(Bmat,Gvec,dsol,size);
+            time(&time_end);
+
+            double time_taken = double(time_end - time_start);
+            cout<<"Time taken to solve : "<<fixed 
+                <<time_taken<<setprecision(5);
+            cout<<" sec"<<endl;
+
+
+            comp result;
+
+            interpolator_ds_integraleq_momrep_2eps_with_weights(dsol,qvec,weights,s,qval,qval,a,m,eps,eps_for_m2k,result);
+            
+        
+            
+            //result = dsol[10];
+            comp m2k = M2kfunc(a,sigb,m, eps_for_m2k);
+            comp gfunc = gfuncConst(a,0.0,m);
+            comp gsq = gfunc*gfunc;
+            comp ds = result;
+            result = m2k*result*m2k;
 
             //result = Bmat.determinant();
 
@@ -12060,8 +12342,9 @@ int main(int argc, char *argv[])
 
     //Mphib_secondsheet_belowthreshold_vs_s3_fixed_s3imag_contour43_with_weights();
     //Mphib_secondsheet_belowthreshold_vs_s3_a_fixed_s3imag_with_weights();
-    Mphib_secondsheet_belowthreshold_vs_s3_N_fixed_s3imag_with_weights(); //this is for firstsheet as well
+    //Mphib_secondsheet_belowthreshold_vs_s3_N_fixed_s3imag_with_weights(); //this is for firstsheet as well
     //Mphib_secondsheet_belowthreshold_vs_s3_N_3d_with_weights(); //this is for the 3d plots of Mphib
+    ds_belowthreshold_vs_s3_N_3d_with_weights();
     //Mphib_firstsheet_abovethreshold_vs_s3_N_fixed_s3imag_with_weights();
     //Mphib_firstsheet_abovethreshold_SAmethod_vs_s3_N_fixed_s3imag_with_weights();
     //dSqqsigma2msq_belowthreshold_vs_s3_N_fixed_s3imag_with_weights();

@@ -12337,6 +12337,76 @@ void tag_fixer_for_gvec_fixer3( Eigen::VectorXcd &Gvec,
     
 }
 
+void contour_for_resonance( vector<comp> &qvec,
+                            vector<comp> &weights,
+                            comp kmin, 
+                            comp kmax,
+                            double shift,
+                            double qvecpoints   )
+{
+    
+    comp ii = {0.0,1.0};
+    comp midpoint = (kmax + kmin)/2.0;
+    midpoint = midpoint + ii*shift;
+    
+    
+    line_maker_with_weights(qvec,weights,kmin,midpoint,qvecpoints/2.0);
+    line_maker_with_weights(qvec,weights,midpoint,kmax,qvecpoints/2.0);
+}
+
+
+void contour_for_resonance_1( vector<comp> &qvec,
+                            vector<comp> &weights,
+                            comp q,
+                            comp kmin, 
+                            comp kmax,
+                            double shift,
+                            double qvecpoints   )
+{
+    
+    comp ii = {0.0,1.0};
+    comp midpoint = (kmax + kmin)/2.0;
+    midpoint = midpoint + ii*shift;
+    
+    comp firstpoint = real(q) - abs(shift);
+    //cout<<kmin<<'\t'<<firstpoint<<endl;
+    comp secondpoint = real(firstpoint) + ii*imag(q) + ii*shift;
+    comp thirdpoint = real(secondpoint) + 2.0*abs(shift) + ii*imag(secondpoint);
+    comp forthpoint = real(thirdpoint);
+
+
+    if(imag(q)<=0.0)
+    {
+        line_maker_with_weights(qvec,weights,kmin,firstpoint,qvecpoints/5.0);
+        line_maker_with_weights(qvec,weights,firstpoint,secondpoint,qvecpoints/5.0);
+        line_maker_with_weights(qvec,weights,secondpoint,thirdpoint,qvecpoints/5.0);
+        line_maker_with_weights(qvec,weights,thirdpoint,forthpoint,qvecpoints/5.0);
+        line_maker_with_weights(qvec,weights,forthpoint,kmax,qvecpoints/5.0);
+    }
+    else
+    {
+        line_maker_with_weights(qvec,weights,kmin,kmax,qvecpoints);
+    }
+}
+
+void contour_for_resonance_2( vector<comp> &qvec,
+                            vector<comp> &weights,
+                            comp kmin, 
+                            double reshift,
+                            double imshift,
+                            comp kmax,
+                            double qvecpoints   )
+{
+    
+    comp ii = {0.0,1.0};
+
+    comp shift = reshift + ii*imshift;
+    
+    
+    line_maker_with_weights(qvec,weights,kmin,shift,qvecpoints/2.0);
+    line_maker_with_weights(qvec,weights,shift,kmax,qvecpoints/2.0);
+}
+
 
 //this one uses the sigma_vector_maker_linear   //
 //and makes the contour. This uses fixed gaps   //

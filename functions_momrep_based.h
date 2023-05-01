@@ -153,6 +153,25 @@ comp M2kbranchcut_left_momrep_minus(     comp s,
     return - (s - m*m)/(2.0*sqrt(s));
 }
 
+
+
+comp M2kbranchcut_right_momrep_plus_eps(     comp s,
+                                             double m,
+                                             double eps)
+{
+    comp ii = {0.0,1.0};
+    return + sqrt(pow(s + ii*eps-3.0*m*m,2.0) - 4.0*s*m*m)/(2.0*sqrt(s));
+}
+comp M2kbranchcut_right_momrep_minus_eps(     comp s,
+                                             double m,
+                                             double eps)
+{
+    comp ii = {0.0,1.0};
+    return - sqrt(pow(s + ii*eps-3.0*m*m,2.0) - 4.0*s*m*m)/(2.0*sqrt(s));
+}
+
+
+
 comp GS_pk( comp s,
             comp p,
             comp k,
@@ -289,12 +308,50 @@ comp M2kfunc(   double a,
     double pi = acos(-1.0);
     //cout<<"sigk:"<<sigk<<endl;
     comp num = 16.0*pi*sqrt(sigk);
+    
     comp denom = -1.0/a - ii*mysqrt((sigk+ii*epsilon)/4.0 - m*m);
 
     //cout<<"num:"<<num<<endl;
     //cout<<"denom:"<<denom<<endl;
 
     return num/denom;
+}
+
+comp M2kfunc_2mysqrt(   double a,
+                comp sigk,
+                double m,
+                double epsilon    )
+{
+    comp ii = {0.0,1.0};
+    double pi = acos(-1.0);
+    //cout<<"sigk:"<<sigk<<endl;
+    comp num = 16.0*pi*sqrt(sigk);
+    
+    comp denom = -1.0/a - ii*sqrt((sigk+ii*epsilon)/4.0 - m*m);
+
+    //cout<<"num:"<<num<<endl;
+    //cout<<"denom:"<<denom<<endl;
+
+    return num/denom;
+}
+
+comp M2kfunc_secondsheet(   double a,
+                            comp sigk,
+                            double m, 
+                            double epsilon  )
+{
+    comp ii = {0.0,1.0};
+    double pi = acos(-1.0);
+    //cout<<"sigk:"<<sigk<<endl;
+    comp num = 16.0*pi*sqrt(sigk);
+    
+    comp denom = -1.0/a - ii*mysqrt((sigk+ii*epsilon)/4.0 - m*m);
+
+    comp m2k = num/denom; 
+
+    comp rho = sqrt(sigk - 4.0*m*m)/(32.0*pi*sqrt(sigk));
+
+    return m2k/(1.0 + 2.0*ii*rho*m2k);
 }
 
 comp M2kfunc_1( double a,
@@ -408,6 +465,28 @@ comp kernel_pk_2eps(    comp s,
     //return ((comp)1.0/(2.0*picomp))*GS(s,sigp,sigk,m,epsilon)*tau1(s,sigk,m)*M2kfunc(a,sigk,m,epsilon);
     //return GS(s,sigp,sigk,m,epsilon);
 }
+
+comp kernel_pk_2eps_1(    comp s,
+                        comp p,
+                        comp k,
+                        double a,
+                        double m,
+                        double epsilon,
+                        double eps_for_m2k )
+{
+    double pi = acos(-1.0);
+    comp picomp = (comp) pi;
+    //cout<<"Gs:"<<GS(s,sigp,sigk,m,epsilon)<<endl;
+    //cout<<"tau:"<<tau(s,sigk,m)<<endl;
+    //cout<<"M2:"<<M2kfunc(a,sigk,m,epsilon)<<endl;
+    comp sigk = sigma_p(s,k,m);
+    
+    if(real(s)<9.0*m*m)
+    return (k*k/(pow(2.0*pi,2.0)*omega_comp(k,m)))*GS_pk(s,p,k,m,epsilon)*M2kfunc(a,sigk,m,eps_for_m2k);
+    else 
+    return (k*k/(pow(2.0*pi,2.0)*omega_comp(k,m)))*GS_pk(s,p,k,m,epsilon)*M2kfunc_2mysqrt(a,sigk,m,eps_for_m2k);
+}
+
 
 
 comp kernel_pk_2eps_withtags(       comp s,

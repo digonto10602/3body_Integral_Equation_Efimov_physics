@@ -366,6 +366,8 @@ comp M2kfunc(   double a,
     return num/denom;
 }
 
+
+
 comp kernel(    comp s,
                 comp sigp,
                 comp sigk,
@@ -15993,8 +15995,106 @@ void mom_vector_maker_seba_imspos_5(  vector<comp> &qvec,
 
 }
 
+void contour_for_resonance( vector<comp> &qvec,
+                            vector<comp> &weights,
+                            comp kmin, 
+                            comp kmax,
+                            double shift,
+                            double qvecpoints   )
+{
+    
+    comp ii = {0.0,1.0};
+    comp midpoint = (kmax + kmin)/2.0;
+    midpoint = midpoint + ii*shift;
+    
+    
+    line_maker_with_weights(qvec,weights,kmin,midpoint,qvecpoints/2.0);
+    line_maker_with_weights(qvec,weights,midpoint,kmax,qvecpoints/2.0);
+}
 
+void contour_for_resonance_1( vector<comp> &qvec,
+                            vector<comp> &weights,
+                            comp q,
+                            comp kmin, 
+                            comp kmax,
+                            double shift,
+                            double qvecpoints   )
+{
+    
+    comp ii = {0.0,1.0};
+    comp midpoint = (kmax + kmin)/2.0;
+    midpoint = midpoint + ii*shift;
+    
+    comp firstpoint = real(q) - abs(shift);
+    //cout<<kmin<<'\t'<<firstpoint<<endl;
+    comp secondpoint = real(firstpoint) + ii*imag(q) + ii*shift;
+    comp thirdpoint = real(secondpoint) + 2.0*abs(shift) + ii*imag(secondpoint);
+    comp forthpoint = real(thirdpoint);
 
+    if(imag(q)<=0.0)
+    {
+        line_maker_with_weights(qvec,weights,kmin,firstpoint,qvecpoints/5.0);
+        line_maker_with_weights(qvec,weights,firstpoint,secondpoint,qvecpoints/5.0);
+        line_maker_with_weights(qvec,weights,secondpoint,thirdpoint,qvecpoints/5.0);
+        line_maker_with_weights(qvec,weights,thirdpoint,forthpoint,qvecpoints/5.0);
+        line_maker_with_weights(qvec,weights,forthpoint,kmax,qvecpoints/5.0);
+    }
+    else
+    {
+        line_maker_with_weights(qvec,weights,kmin,kmax,qvecpoints);
+    }
+}
+
+void contour_for_resonance_2( vector<comp> &qvec,
+                            vector<comp> &weights,
+                            comp kmin, 
+                            double reshift,
+                            double imshift,
+                            comp kmax,
+                            double qvecpoints   )
+{
+    
+    comp ii = {0.0,1.0};
+
+    comp shift = reshift + ii*imshift;
+    
+    
+    line_maker_with_weights(qvec,weights,kmin,shift,qvecpoints/2.0);
+    line_maker_with_weights(qvec,weights,shift,kmax,qvecpoints/2.0);
+}
+
+comp M2kfunc_1(   double a,
+                comp sigk,
+                double m,
+                double epsilon    )
+{
+    comp ii = {0.0,1.0};
+    double pi = acos(-1.0);
+    //cout<<"sigk:"<<sigk<<endl;
+    comp num = 16.0*pi*sqrt(sigk);
+    comp denom = -1.0/a - ii*sqrt((sigk+ii*epsilon)/4.0 - m*m);
+
+    return num/denom;
+}
+
+comp M2kfunc_secondsheet(   double a,
+                            comp sigk,
+                            double m, 
+                            double epsilon  )
+{
+    comp ii = {0.0,1.0};
+    double pi = acos(-1.0);
+    //cout<<"sigk:"<<sigk<<endl;
+    comp num = 16.0*pi*sqrt(sigk);
+    
+    comp denom = -1.0/a - ii*mysqrt((sigk+ii*epsilon)/4.0 - m*m);
+
+    comp m2k = num/denom; 
+
+    comp rho = mysqrt(sigk - 4.0*m*m)/(32.0*pi*sqrt(sigk));
+
+    return m2k/(1.0 + 2.0*ii*rho*m2k);
+}
 
 /*  This is the same massive data generator but it puts all the values
     of individual qvec points in to one file, this helps us to see if 
@@ -16008,7 +16108,7 @@ void kernel_pcut_x_glockletest_vs_s3_allqvec()
 {
     //cout<<"here"<<endl;
     ofstream fout;
-    double a = 16.0;
+    double a = -6.4;
     double m = 1.0;
     double sreal = 3.0;//3.0;
     double simag = 0.0;//-0.05;
@@ -16016,7 +16116,8 @@ void kernel_pcut_x_glockletest_vs_s3_allqvec()
     double eps = 0.0;//1.0e-3;//1.0e-4;
     double eps1 = eps;//0.0;
 
-    comp sigb = sigmab(a,m);
+    //comp sigb = sigmab(a,m);
+    comp sigb = 2.0*m*m;//sigmab(a,m);
     
     
 
@@ -16038,11 +16139,11 @@ void kernel_pcut_x_glockletest_vs_s3_allqvec()
     //double delp = abs(pinitial-pfinal)/50.0;
 
     double rad = 0.16;
-    double pRinitial = -0.101;//-0.221;//-abs(abs(rad)+0.015);
-    double pRfinal = 0.1;//0.22;//abs(abs(rad)+0.015);
+    double pRinitial = -1.6101;//-0.221;//-abs(abs(rad)+0.015);
+    double pRfinal = 1.61;//0.22;//abs(abs(rad)+0.015);
     double delpR = abs(pRinitial-pRfinal)/points;
-    double pIinitial = -0.151;//-0.221;//-abs(abs(rad)+0.015);
-    double pIfinal = 0.15;//0.22;//abs(abs(rad)+0.015);
+    double pIinitial = -1.51;//-0.221;//-abs(abs(rad)+0.015);
+    double pIfinal = 1.5;//0.22;//abs(abs(rad)+0.015);
     double delpI = abs(pIinitial - pIfinal)/points;
 
     double sinitial = 8.60;//(double)real(phibthreshold(a,m));//8.72;
@@ -16063,7 +16164,7 @@ void kernel_pcut_x_glockletest_vs_s3_allqvec()
         //if(scount!=0) break;
         int pcount = 0;
         
-        s3 = 8.98;
+        s3 = 9.05;
         double delsimag = abs(-0.01 - 0.01)/delspoints;
         //simag = -0.01 + i*delsimag;
         simag = +0.00;
@@ -16121,7 +16222,10 @@ void kernel_pcut_x_glockletest_vs_s3_allqvec()
             //mom_vector_maker_43_with_weights(qvec,weights,s,0.0,kmax,a,m,eps,eps,(double)qvecpoints,qvec_r);
             //mom_vector_maker_seba_imsneg(qvec,weights,s,0.0,kmax,a,m,eps,eps,(double)qvecpoints);
             qvecpoints = 500;
-            mom_vector_maker_43_with_weights_with_seba_imsneg(qvec,weights,s,0.0,kmax,a,m,eps,eps,(double)qvecpoints,qvec_r);
+            //mom_vector_maker_43_with_weights_with_seba_imsneg(qvec,weights,s,0.0,kmax,a,m,eps,eps,(double)qvecpoints,qvec_r);
+            double reshift = 0.1;
+            double imshift = -0.1;
+            contour_for_resonance_2(qvec,weights,0.0,reshift,imshift,kmax,qvecpoints);
             //line_maker_with_weights(qvec,weights,0.0,kmax,qvecpoints);
                 
             //mom_vector_maker_41(qvec,#)
@@ -16138,8 +16242,17 @@ void kernel_pcut_x_glockletest_vs_s3_allqvec()
             //mom_vector_maker_seba_imspos_2(qvec,weights,s,0.0,kmax,a,m,eps,eps,(double)qvecpoints,tag1,tag2,gvec_fixer_tag);
             //mom_vector_maker_seba_imspos_4(qvec,weights,s,0.0,kmax,a,m,eps,eps,(double)qvecpoints,tag1,tag2,gvec_fixer_tag);
             //mom_vector_maker_seba_imspos_5(qvec,weights,s,0.0,kmax,a,m,eps,eps,(double)qvecpoints,tag1,tag2,gvec_fixer_tag);
-            line_maker_with_weights(qvec,weights,0.0,kmax,qvecpoints);
-                
+            //line_maker_with_weights(qvec,weights,0.0,kmax,qvecpoints);
+            //contour_for_resonance(qvec,weights,0.0,kmax,0.1,qvecpoints);
+            cout<<M2kbranchcut_left_momrep_plus(s,m)<<endl;
+            cout<<M2kbranchcut_left_momrep_minus(s,m)<<endl;
+            cout<<M2kbranchcut_right_momrep_plus_eps(s,m,eps1)<<endl;
+            cout<<M2kbranchcut_right_momrep_minus_eps(s,m,eps1)<<endl;
+
+            double reshift = 0.1;
+            double imshift = -0.1;
+            contour_for_resonance_2(qvec,weights,0.0,reshift,imshift,kmax,qvecpoints);
+            //contour_for_resonance_1(qvec,weights,M2kbranchcut_right_momrep_plus_eps(s,m,eps1),0.0,kmax,-abs(M2kbranchcut_right_momrep_plus_eps(s,m,eps1))/10,qvecpoints);
             //mom_vector_maker_seba_imspos_1(qvec,weights,s,0.0,kmax,a,m,eps,eps,(double)qvecpoints);
             //mom_vector_maker_seba_imspos_2_with_contour47(qvec,weights,s,0.0,kmax,a,m,eps,eps,(double)qvecpoints,tag1,tag2,gvec_fixer_tag);
             //mom_vector_maker_seba_imspos_1(qvec,weights,s,0.0,kmax,a,m,eps,eps,(double)qvecpoints);
@@ -16195,7 +16308,11 @@ void kernel_pcut_x_glockletest_vs_s3_allqvec()
 
                 double pi = acos(-1.0);
 
-                comp ope = (pcomp*pcomp/(pow(2.0*pi,2.0)*omega_comp(pcomp,m)))*GS_pk(s,q,pcomp,m,eps)*M2kfunc(a,sigp,m,eps1);
+                //comp ope = (pcomp*pcomp/(pow(2.0*pi,2.0)*omega_comp(pcomp,m)))*GS_pk(s,q,pcomp,m,eps)*M2kfunc(a,sigp,m,eps1);
+                //comp ope = (pcomp*pcomp/(pow(2.0*pi,2.0)*omega_comp(pcomp,m)))*M2kfunc(a,sigp,m,eps1);
+                
+                comp ope = M2kfunc_secondsheet(a,sigp,m,eps1);//M2kfunc_1(a,sigp,m,eps1);
+                
                 //comp ope = GS_pk(s,q,pcomp,m,eps);
                 //comp ope = (pcomp*pcomp/(pow(2.0*pi,2.0)))*GS_pk(s,q,pcomp,m,eps);
                 

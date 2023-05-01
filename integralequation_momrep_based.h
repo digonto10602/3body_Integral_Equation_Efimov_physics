@@ -336,13 +336,15 @@ void Bmat_maker_momrep_2eps_with_weights(       Eigen::MatrixXcd &Bmat,
             if(j==i)
             {
                 comp one = {1.0,0.0};
-                Bmat(i,j) = one + weight*kernel_pk_2eps(s,p[i],k[j],a,m,epsilon,eps_for_m2k);
+                //Bmat(i,j) = one + weight*kernel_pk_2eps(s,p[i],k[j],a,m,epsilon,eps_for_m2k);
+                Bmat(i,j) = one + weight*kernel_pk_2eps_1(s,p[i],k[j],a,m,epsilon,eps_for_m2k);
                 //Bmat(i,j) =  weight*kernel_pk_2eps(s,p[i],k[j],a,m,epsilon,eps_for_m2k);
             
             }
             else 
             {
-                Bmat(i,j) = weight*kernel_pk_2eps(s,p[i],k[j],a,m,epsilon,eps_for_m2k);
+                //Bmat(i,j) = weight*kernel_pk_2eps(s,p[i],k[j],a,m,epsilon,eps_for_m2k);
+                Bmat(i,j) = weight*kernel_pk_2eps_1(s,p[i],k[j],a,m,epsilon,eps_for_m2k);
             }
         }
     }

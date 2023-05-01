@@ -118,6 +118,46 @@ void interpolator_ds_integraleq_momrep_2eps_with_weights(       Eigen::VectorXcd
     result = -one*Gs - one*integralsum;
 }
 
+void interpolator_ds_integraleq_momrep_2eps_with_weights_2mysqrt(       Eigen::VectorXcd &dsol,
+                                                                vector<comp> &qvec,
+                                                                vector<comp> &weights,
+                                                                comp s,
+                                                                comp p,
+                                                                comp k,
+                                                                double a,
+                                                                double m,
+                                                                double eps,
+                                                                double eps_for_m2k,
+                                                                comp &result  )
+{
+    comp ii = {0.0,1.0};
+
+    comp Gs = GS_pk(s,p,k,m,eps);
+    comp delq;
+    comp integralsum = {0.0,0.0};
+
+    for(int i=0;i<qvec.size();++i)
+    {
+        if(i==0)
+        {
+            delq = qvec[1] - qvec[0];
+        }
+        else
+        {
+            delq = qvec[i] - qvec[i-1];
+        }
+
+        if(real(s)<9.0*m*m)
+        integralsum = integralsum + weights[i]*kernel_pk_2eps(s,p,qvec[i],a,m,eps,eps_for_m2k)*dsol(i);
+        else 
+        integralsum = integralsum + weights[i]*kernel_pk_2eps_1(s,p,qvec[i],a,m,eps,eps_for_m2k)*dsol(i);
+
+    }
+
+    comp one = {1.0,0.0};
+    result = -one*Gs - one*integralsum;
+}
+
 
 
 void interpolator_ds_integraleq_momrep_2eps_withtags(     Eigen::VectorXcd &dsol,

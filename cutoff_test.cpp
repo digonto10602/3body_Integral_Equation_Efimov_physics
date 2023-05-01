@@ -31,6 +31,14 @@ comp s0_based_Jfunc_comp_smooth(    double s0,
     else return 1.0;
 }
 
+double s0_based_Jfunc_comp_smooth_1(    double s0, 
+                                        comp x  )
+{
+    if(real(x)<=0.0) return 0.0;
+    else if(real(x)>0.0 && real(x)<s0) return exp((-1.0/real(x))*exp(-1.0/(1.0-real(x))));
+    else return 1.0;
+}
+
 comp s0_based_Jfunc_comp_hard(      double s0, 
                                     comp x  )
 {
@@ -44,6 +52,13 @@ comp s0_based_Hfunc_comp_smooth(    comp sigmap,
                                     double m    )
 {
     return s0_based_Jfunc_comp_smooth(s0, sigmap/(4.0*m*m));
+}
+
+double s0_based_Hfunc_comp_smooth_1(    comp sigmap,
+                                    double s0,
+                                    double m    )
+{
+    return s0_based_Jfunc_comp_smooth_1(s0, sigmap/(4.0*m*m));
 }
 
 comp s0_based_Hfunc_comp_hard(      comp sigmap,
@@ -452,7 +467,7 @@ void cutoff_test()
     // Inputs
     double pi = acos(-1.0);
     double a = 2.0;
-    double s = 8.5;
+    double s = 9.2;
     double kx = 0.0;
     double ky = 0.0;
     double kz = 0.0;
@@ -528,9 +543,325 @@ void testing_hardcutoff()
     //return 0;
 }
 
+void F3_vs_s()
+{
+    //Inputs
+    double pi = acos(-1.0);
+    double a = -10.0;
+    double kx = 0.0;
+    double ky = 0.0;
+    double kz = 0.0;
+    comp k = sqrt(kx*kx + ky*ky + kz*kz);
+
+    double m = 1.0;
+    double epsilon = 0.001;
+    double L = 6.0;
+    double kpoints = 100.0;
+    double n_max = 10.0;
+    double s0 = 0.90;
+    double sinitial = 6.25;
+    double sfinal = 20.25;
+    double spoints = 200.0;
+    double dels = abs(sfinal - sinitial)/spoints; 
+
+    ofstream fout;
+    string filename = "F3_vs_s_for_a_"+to_string(a)+"_L_"+to_string((int)L)+"_s0_"+to_string(s0)+".dat";
+    fout.open(filename.c_str());
+
+    int scount = 0;
+    for(int i=0;i<spoints+1;++i)
+    {
+        double s = sinitial + i*dels;
+
+        comp F3smooth = F3_smooth(s, a, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max);
+        //comp F3hard   = F3_hard  (s, a, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max);
+        
+        //comp delF3 = F3smooth - F3hard;
+
+        cout<<"s = "<<s<<endl;
+        cout<<"F3smooth = "<<F3smooth<<endl;
+        //cout<<"F3hard = "<<F3hard<<endl;
+        cout<<"cutoff_s0 = "<<s0<<endl;
+        cout<<"========================="<<endl;
+        cout<<endl;
+
+        fout<<setprecision(16)
+            <<s<<'\t'<<a<<'\t'<<s0<<'\t'
+            <<real(k)<<'\t'<<imag(k)<<'\t'<<L<<'\t'
+            <<real(F3smooth)<<'\t'<<imag(F3smooth)<<endl;
+            //<<real(F3hard)<<'\t'<<imag(F3hard)<<'\t'
+            //<<real(delF3)<<'\t'<<imag(delF3)<<endl;
+            
+        cout<<"run = "<<scount+1<<endl;
+        scount = scount + 1;
+    }
+    fout.close();
+}
+
+
+// This portion of the code is made based 
+// on https://arxiv.org/pdf/1803.04169.pdf
+
+
+//in these functions we assume p=k
+comp onebyomega_Kmat_smooth(    double scat_length,
+                                comp s,
+                                comp k,
+                                double s0,
+                                double m  )
+{
+    double pi = acos(-1.0);
+    comp sigk = sigma_p(s,k,m);
+    comp omegak = omega_comp(k,m);
+
+    comp Hk = s0_based_Hfunc_comp_smooth(sigk,s0,m);
+
+    comp q2k = sqrt(sigk/4.0 - m*m);
+
+    return (-1.0/scat_length + abs(q2k)*(1.0 - Hk))/(32.0*pi*omegak*sqrt(sigk));
+
+}
+
+comp Gs_00_smooth(  comp s,
+                    comp p,
+                    comp k,
+                    double m,
+                    double s0,
+                    double L    )
+{
+    comp sigp = sigma_p(s,p,m);
+    comp sigk = sigma_p(s,k,m);
+    comp Hk = s0_based_Hfunc_comp_smooth(sigk,s0,m);
+    comp Hp = s0_based_Hfunc_comp_smooth(sigp,s0,m);
+
+    comp omegak = omega_comp(k,m);
+    comp omegap = omega_comp(p,m);
+    comp omegakp = omega_comp(p+k,m);
+
+    return (Hk*Hp)/(8.0*L*L*L*omegak*omegap*omegakp*(sqrt(s) - omegak - omegap - omegakp));
+}
+
+comp Fs_smooth_finite(  comp s,
+                        comp k,
+                        double m,
+                        double s0,
+                        double n_max,
+                        double L)
+{
+    double pi = acos(-1.0);
+    comp sigk = sigma_p(s,k,m);
+    comp Hk = s0_based_Hfunc_comp_smooth(sigk,s0,m);
+    comp omegak = omega_comp(k,m);
+
+    comp summ = {0.0,0.0};
+    for(int nx=0;nx<n_max;++nx)
+    {
+        for(int ny=0;ny<n_max;++ny)
+        {
+            for(int nz=0;nz<n_max;++nz)
+            {
+                double n = sqrt(nx*nx + ny*ny + nz*nz);
+
+                comp az = (2.0*pi/L)*nz; 
+                comp a = (2.0*pi/L)*n;
+
+                comp omegaa = omega_comp(a,m);
+
+                comp kplusa = k*k + a*a + 2.0*k*az;
+
+                comp omegaka = omega_comp(kplusa,m);
+
+                comp denom = 4.0*omegaa*omegaka*(sqrt(s)- omegak - omegaa - omegaka);
+
+                comp res = (Hk/(4.0*omegak*L*L*L))*(1.0/denom);
+                summ = summ + res;
+            }
+        }
+    }
+
+    return summ;
+}
+
+comp Fs_smooth_infinite(  comp s,
+                        comp k,
+                        double m,
+                        double s0,
+                        double points)
+{
+    double pi = acos(-1.0);
+    comp sigk = sigma_p(s,k,m);
+    comp Hk = s0_based_Hfunc_comp_smooth_1(sigk,s0,m);
+    comp omegak = omega_comp(k,m);
+
+    comp summ = {0.0,0.0};
+    comp a_min = 0.0;
+    comp a_max = pmom(s,0.0,m);
+    vector<comp> qvec;
+    vector<comp> weights;
+    line_maker_with_weights(qvec,weights,a_min,a_max,points);
+
+    for(int nx=0;nx<qvec.size();++nx)
+    {
+        for(int ny=0;ny<qvec.size();++ny)
+        {
+            for(int nz=0;nz<qvec.size();++nz)
+            {
+                comp ax = qvec[nx];
+                comp ay = qvec[ny];
+                comp az = qvec[nz];
+
+                comp dax = weights[nx];
+                comp day = weights[ny];
+                comp daz = weights[nz];
+
+                comp a = sqrt(ax*ax + ay*ay + az*az);
+
+                comp omegaa = omega_comp(a,m);
+
+                comp kplusa = k*k + a*a + 2.0*k*az;
+
+                comp omegaka = omega_comp(kplusa,m);
+
+                comp denom = 4.0*omegaa*omegaka*(sqrt(s)- omegak - omegaa - omegaka);
+                //comp denom = 4.0*omegaa*omegaka;//*(sqrt(s)- omegak - omegaa - omegaka);
+
+                //comp res = (Hk/(4.0*omegak*2.0*pi*2.0*pi*2.0*pi))*dax*day*daz*(1.0/denom);
+                comp res = (1.0/(4.0*omegak*2.0*pi*2.0*pi*2.0*pi))*dax*day*daz*(1.0/denom);
+                
+                double check_val = abs(sqrt(s)- omegak - omegaa - omegaka);
+                double tolerance = 1.0e-6;
+                if(check_val>tolerance)
+                {
+                    summ = summ + res;
+                }
+                else 
+                {
+                    summ = summ;
+                }
+            }
+        }
+    }
+
+    return summ;
+}
+
+comp Fs_smooth( comp s,
+                comp k,
+                double m,
+                double s0,
+                double n_max,
+                double L, 
+                double points   )
+
+{
+    comp Fsfinite = Fs_smooth_finite(s,k,m,s0,n_max,L);
+    comp Fsinfinite = Fs_smooth_infinite(s,k,m,s0,points);
+
+    return Fsfinite - Fsinfinite;
+}
+
+comp F3s_smooth(    double scat_length,
+                    comp s,
+                    comp p,
+                    comp k,
+                    double m,
+                    double s0,
+                    double n_max,
+                    double L, 
+                    double points   )
+{
+    comp Fs00 = Fs_smooth(s,k,m,s0,n_max,L,points);
+
+    comp Gs00 = Gs_00_smooth(s,p,k,m,s0,L);
+
+    comp onebKmat = onebyomega_Kmat_smooth(scat_length,s,k,s0,m);
+
+    comp denom = onebKmat + Fs00 + Gs00;
+
+    return (1.0/L*L*L)*(Fs00/3.0 - Fs00*(1.0/denom)*Fs00);
+}
+
+void F3s_vs_s()
+{
+    //Inputs
+    double pi = acos(-1.0);
+    double a = -10.0;
+    double kx = 0.0;
+    double ky = 0.0;
+    double kz = 0.0;
+    comp k = sqrt(kx*kx + ky*ky + kz*kz);
+
+    double m = 1.0;
+    double epsilon = 0.001;
+    double L = 6.0;
+    double kpoints = 100.0;
+    double n_max = 15.0;
+    double s0 = 1.0;
+    double sinitial = 6.25;
+    double sfinal = 20.25;
+    double spoints = 200.0;
+    double dels = abs(sfinal - sinitial)/spoints; 
+
+    ofstream fout;
+    string filename = "F3_vs_s_for_a_"+to_string(a)+"_L_"+to_string((int)L)+"_s0_"+to_string(s0)+".dat";
+    fout.open(filename.c_str());
+
+    int scount = 0;
+    for(int i=0;i<spoints+1;++i)
+    {
+        double s = sinitial + i*dels;
+
+        comp k = sqrt(kx*kx + ky*ky + kz*kz);
+
+        comp F3smooth = F3s_smooth(a, s, k, k, m, s0, n_max, L, kpoints);
+        //comp F3hard   = F3_hard  (s, a, kx, ky, kz, s0, m, epsilon, L, kpoints, n_max);
+        
+        //comp delF3 = F3smooth - F3hard;
+
+        cout<<"s = "<<s<<endl;
+        cout<<"F3smooth = "<<F3smooth<<endl;
+        //cout<<"F3hard = "<<F3hard<<endl;
+        cout<<"cutoff_s0 = "<<s0<<endl;
+        cout<<"========================="<<endl;
+        cout<<endl;
+
+        fout<<setprecision(16)
+            <<s<<'\t'<<a<<'\t'<<s0<<'\t'
+            <<real(k)<<'\t'<<imag(k)<<'\t'<<L<<'\t'
+            <<real(F3smooth)<<'\t'<<imag(F3smooth)<<endl;
+            //<<real(F3hard)<<'\t'<<imag(F3hard)<<'\t'
+            //<<real(delF3)<<'\t'<<imag(delF3)<<endl;
+            
+        cout<<"run = "<<scount+1<<endl;
+        scount = scount + 1;
+    }
+    fout.close();
+}
+
+void number_test()
+{
+    double a = -2.0;
+    double m = 1.0;
+
+    double s = 9.01;
+    comp sigb = sigmab(a,m);
+    comp q = pmom(s,sigb, m);
+
+    
+}
+
+void raul_test()
+{
+    comp s = 7.0;
+    double m = 1.0;
+
+    cout<<pmom(s,0.0,m)<<endl;
+}
+
 int main()
 {
-    cutoff_test();
-
+    //cutoff_test();
+    //F3_vs_s();
+    F3s_vs_s();
     return 0;
 }
